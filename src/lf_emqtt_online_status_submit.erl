@@ -86,7 +86,7 @@ handle_cast({lfsd,ClientId,Status}, State) ->
 		true ->
 		    notok
 	    end;
-         true - >
+         true ->
 	 	call_online_offline(Eid,Status)
      end;
 handle_cast(_, State) ->
