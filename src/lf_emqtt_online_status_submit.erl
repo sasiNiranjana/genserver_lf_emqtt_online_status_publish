@@ -45,11 +45,13 @@ load(Env) ->
     emqttd:hook('client.disconnected', fun ?MODULE:on_client_disconnected/3, [Env]).
 
 on_client_connected(ConnAck, Client = #mqtt_client{client_id = ClientId}, _Env) ->
-    gen_server:cast(?MODULE,{lfsd,ClientId,"true"}),
+    Server=proplists:get_value(server,_Env,"http://localhost:8080/lfservices/api/asset_online_status/emqtt_update_status"),
+    gen_server:cast(?MODULE,{lfsd,ClientId,Server,"true"}),
     {ok, Client}.
 
 on_client_disconnected(Reason, _Client = #mqtt_client{client_id = ClientId}, _Env) ->
-    gen_server:cast(?MODULE,{lfsd,ClientId,"false"}),
+    Server=proplists:get_value(server,_Env,"http://localhost:8080/lfservices/api/asset_online_status/emqtt_update_status"),
+    gen_server:cast(?MODULE,{lfsd,ClientId,Server,"false"}),
     ok.
 
 %%--------------------------------------------------------------------
@@ -74,7 +76,7 @@ terminate(_Reason, _State) -> ok.
 handle_call(Req, _From, State) ->
     ?UNEXPECTED_REQ(Req, State).
 
-handle_cast({lfsd,ClientId,Status}, State) ->
+handle_cast({lfsd,ClientId,Server,Status}, State) ->
     [EId|_] = string:split(ClientId,"|"),
     Length = string:length(EId),
     if
@@ -82,20 +84,19 @@ handle_cast({lfsd,ClientId,Status}, State) ->
 	    A = binary_part(EId,{0,6}),B = <<"Nimbus">>,C = <<"nimbus">>,D = <<"NIMBUS">>,E = A/=B, F = A/=C, G = A/=D, H = E and F,
 	    if
 		G and H ->
-		    call_online_offline(EId,Status),
+		    call_online_offline(EId,Status,Server),
 		    {noreply, State};
 		true ->
 		    {noreply, State}
 	    end;
          true ->
-	 	call_online_offline(EId,Status),
+	 	call_online_offline(EId,Status,Server),
 		{noreply, State}
      end;
 handle_cast(Req, State) ->
      ?UNEXPECTED_REQ(Req, State).
 
-call_online_offline(ClientId,Status) ->
-	Server=proplists:get_value(server,_Env,"http://localhost:8080/lfservices/api/asset_online_status/emqtt_update_status"),
+call_online_offline(ClientId,Status,Server) ->
 	ContentType="application/json",
 	Message = "{\"bodySerial\":\"" ++ binary_to_list(ClientId) ++ "\",\"status\":" ++ Status ++ "}",
 	inets:start(),
