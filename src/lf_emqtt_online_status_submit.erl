@@ -91,7 +91,7 @@ handle_cast({lfsd,ClientId,Status}, State) ->
 	 	call_online_offline(EId,Status),
 		{noreply, State}
      end;
-handle_cast(_, State) ->
+handle_cast(Req, State) ->
      ?UNEXPECTED_REQ(Req, State).
 
 call_online_offline(ClientId,Status) ->
