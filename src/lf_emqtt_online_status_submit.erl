@@ -79,15 +79,17 @@ handle_cast({lfsd,ClientId,Status}, State) ->
     Length = string:length(EId),
     if
 	Length >= 6 ->
-	    A = binary_part(Eid,{0,6}),B = <<"Nimbus">>,C = <<"nimbus">>,D = <<"NIMBUS">>,E = A/=B, F = A/=C, G = A/=D, H = E and F,
+	    A = binary_part(EId,{0,6}),B = <<"Nimbus">>,C = <<"nimbus">>,D = <<"NIMBUS">>,E = A/=B, F = A/=C, G = A/=D, H = E and F,
 	    if
 		G and H ->
-		    call_online_offline(Eid,Status);
+		    call_online_offline(EId,Status),
+		    {noreply, State};
 		true ->
-		    notok
+		    {noreply, State}
 	    end;
          true ->
-	 	call_online_offline(Eid,Status)
+	 	call_online_offline(EId,Status),
+		{noreply, State}
      end;
 handle_cast(_, State) ->
      ?UNEXPECTED_REQ(Req, State).
@@ -99,9 +101,6 @@ call_online_offline(ClientId,Status) ->
 	inets:start(),
 	httpc:request(post,{Server,[],ContentType,Message},[],[]),
 	ok.
-
-handle_cast(Msg, State) ->
-    ?UNEXPECTED_MSG(Msg, State).
 
 handle_info(_, State) ->
     {noreply, State}.
